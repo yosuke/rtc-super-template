@@ -10,18 +10,17 @@ import sys
 import os
 from formula import *
 
-def genports(ports, iotype):
+def genport(ports, iotype):
     global portsdefinition, portsinitialization, portscreation
-    for p in ports:
-        valmap = {'porttype': p._type.replace('.', '::'), 'portname': p._name,
-                  'iotype': iotype}
-        portsdefinition += '''\
+    valmap = {'porttype': p._type.replace('.', '::'), 'portname': p._name,
+              'iotype': iotype}
+    portsdefinition += '''\
   %(porttype)s m_%(portname)s;
   %(iotype)sPort<%(porttype)s> m_%(portname)s%(iotype)s;
 ''' % valmap
-        portsinitialization += ''', m_%(portname)s%(iotype)s("%(portname)s", m_%(portname)s)''' \
-            % valmap
-        portscreation += '''\
+    portsinitialization += ''', m_%(portname)s%(iotype)s("%(portname)s", m_%(portname)s)''' \
+        % valmap
+    portscreation += '''\
   add%(iotype)sPort("%(portname)s", m_%(portname)s%(iotype)s);
 ''' % valmap
 
@@ -59,14 +58,18 @@ if isinstance(f.lhs, Formula):
     outports = f.lhs.getsymbols()
 elif isinstance(f.lhs, Symbol):
     outports = [f.lhs]
-genports(outports, 'Out')
+for p in outports:
+    genport(p, 'Out')
+    valmap = {'porttype': p._type.replace('.', '::'), 'portname': p._name}
+    portsdefinition += '%(porttype)s m_%(portname)s_prev;\n' % valmap
 
 inports = []
 if isinstance(f.rhs, Formula):
     inports = f.rhs.getsymbols()
 elif isinstance(f.rhs, Symbol):
     inports = [f.rhs]
-genports(inports, 'In')
+for p in inports:
+    genport(p, 'In')
 
 for p in inports:
     logic += '''\
@@ -76,7 +79,12 @@ for p in inports:
 ''' % {'portname': p._name}
 logic += '  %s;\n' % (createlogic_recur(f)[1:-1],)
 for p in outports:
-    logic += '  m_%sOut.write();\n' % (p._name)
+    logic += '''\
+  if (m_%(name)s.data != m_%(name)s_prev.data) {
+    m_%(name)s.data = m_%(name)s_prev.data;
+    m_%(name)sOut.write();
+  }
+''' % (p._name)
 
 tmpl = """\
 #include <rtm/idl/BasicDataTypeSkel.h>
