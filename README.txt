@@ -14,7 +14,8 @@ $ rtc-super-template.py --name SampleFormula --formula \
 Options:
   --version             show program's version number and exit
   -h, --help            show this help message and exit
-  -n NAME, --name=NAME  Name of the RT-Component. [Default: Formula]
+  -n NAME, --name=NAME  name of the RT-Component [Default: Formula]
   -f FORMULA, --formula=FORMULA
-                        The formula. [Default: out:RTC.TimedLong =
-                        in1:RTC.TimedLong + in2:RTC.TimedLong]
+                        the formula
+  -c, --compile         compile the component
+  -l HOST, --load=HOST  load the component to the manager

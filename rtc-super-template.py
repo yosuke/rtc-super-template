@@ -68,15 +68,24 @@ $ %prog --name SampleFormula --formula \\
 '''
     parser = optparse.OptionParser(usage=usage, version=__version__)
     parser.add_option('-n', '--name', dest='name', action='store',
-            type='string', default='Formula',
-            help='Name of the RT-Component. ' \
-            '[Default: %default]')
+                      type='string', metavar='NAME', default='Formula',
+                      help='name of the RT-Component [Default: %default]')
     parser.add_option('-f', '--formula', dest='formula', action='store',
-            type='string', default='out:RTC.TimedLong = in1:RTC.TimedLong + in2:RTC.TimedLong',
-            help='The formula. ' \
-            '[Default: %default]')
+                      type='string', metavar='FORMULA',
+                      help='the formula')
+    parser.add_option('-c', '--compile', dest='compile', action='store_true',
+                      default=False, help='compile the component')
+    parser.add_option('-l', '--load', dest='load', action='store',
+                      type='string', metavar='HOST',
+                      help='load the component to the manager')
 
     options, args = parser.parse_args()
+    if options.formula is None:
+        parser.error('you have to define formula')
+        return(1)
+    if options.load is not None and options.compile == False:
+        parser.error('you have to define --compile option to load the component')
+        return(1)
 
     name = options.name
     formula = options.formula
@@ -212,9 +221,11 @@ extern "C"
                         }
     fp.close()
     
-    cmdline = 'g++ -shared -o %(name)s.so `rtm-config --cflags` `rtm-config --libs` %(name)s.cc' % {'name': name}
-    
-    subprocess.Popen(['/bin/sh', '-c', cmdline])
+    if options.compile:
+        cmdline = 'g++ -shared -o %(name)s.so `rtm-config --cflags` `rtm-config --libs` %(name)s.cc' % {'name': name}
+        subprocess.call([cmdline], shell=True)
+    if options.load is not None:
+        subprocess.call(['rtmgr', '--load', name + '.so', '--init-func', name + 'Init', options.load])
     return(0)
 
 if __name__ == '__main__':
